@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Colors, FontSize } from '../constants/theme';
 import { getScoreColor } from '../utils/score';
 
@@ -12,108 +11,45 @@ interface ScoreRingProps {
 }
 
 export function ScoreRing({ score, bonus, size = 200, strokeWidth = 12 }: ScoreRingProps) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const center = size / 2;
-
-  const [progress, setProgress] = useState(0);
-  const [bonusProgressVal, setBonusProgressVal] = useState(0);
-
-  useEffect(() => {
-    const targetProgress = Math.min(score, 100) / 100;
-    const targetBonus = Math.min(bonus, 10) / 10;
-
-    // Simple animation using requestAnimationFrame
-    let start: number | null = null;
-    const duration = 1200;
-    const startProgress = progress;
-    const startBonus = bonusProgressVal;
-
-    const animate = (timestamp: number) => {
-      if (!start) start = timestamp;
-      const elapsed = timestamp - start;
-      const t = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - t, 3);
-
-      setProgress(startProgress + (targetProgress - startProgress) * eased);
-      setBonusProgressVal(startBonus + (targetBonus - startBonus) * eased);
-
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [score, bonus]);
-
-  const bonusRadius = radius - strokeWidth - 4;
-  const bonusCircumference = 2 * Math.PI * bonusRadius;
-
   const color = getScoreColor(score);
   const displayScore = Math.min(score + bonus, 110);
+  const progress = Math.min(score, 100) / 100;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <Defs>
-          <LinearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor={color} />
-            <Stop offset="100%" stopColor={color} stopOpacity={0.6} />
-          </LinearGradient>
-          <LinearGradient id="bonusGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor={Colors.warning} />
-            <Stop offset="100%" stopColor={Colors.warningLight} />
-          </LinearGradient>
-        </Defs>
-        {/* Background track */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={Colors.surfaceLight}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        {/* Bonus track */}
-        {bonus > 0 && (
-          <>
-            <Circle
-              cx={center}
-              cy={center}
-              r={bonusRadius}
-              stroke={Colors.surfaceLight}
-              strokeWidth={strokeWidth - 4}
-              fill="none"
-            />
-            <Circle
-              cx={center}
-              cy={center}
-              r={bonusRadius}
-              stroke="url(#bonusGrad)"
-              strokeWidth={strokeWidth - 4}
-              fill="none"
-              strokeDasharray={`${bonusCircumference}`}
-              strokeDashoffset={bonusCircumference * (1 - bonusProgressVal)}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${center} ${center})`}
-            />
-          </>
-        )}
-        {/* Score arc */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke="url(#scoreGrad)"
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={`${circumference}`}
-          strokeDashoffset={circumference * (1 - progress)}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      </Svg>
+      {/* Background ring */}
+      <View
+        style={[
+          styles.ring,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderWidth: strokeWidth,
+            borderColor: Colors.surfaceLight,
+          },
+        ]}
+      />
+      {/* Progress arc - using a simple fill approach */}
+      <View
+        style={[
+          styles.ring,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderWidth: strokeWidth,
+            borderColor: 'transparent',
+            borderTopColor: color,
+            borderRightColor: progress > 0.25 ? color : 'transparent',
+            borderBottomColor: progress > 0.5 ? color : 'transparent',
+            borderLeftColor: progress > 0.75 ? color : 'transparent',
+            transform: [{ rotate: '-45deg' }],
+            opacity: progress > 0 ? 1 : 0,
+          },
+        ]}
+      />
+      {/* Score text */}
       <View style={styles.labelContainer}>
         <Text style={[styles.scoreText, { color }]}>
           {displayScore}
@@ -132,8 +68,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  labelContainer: {
+  ring: {
     position: 'absolute',
+  },
+  labelContainer: {
     alignItems: 'center',
   },
   scoreText: {
