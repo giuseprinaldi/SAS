@@ -1,18 +1,13 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-  useSharedValue,
-} from 'react-native-reanimated';
 import { useApp } from '../../src/context/AppContext';
 import { WeekNavigator } from '../../src/components/WeekNavigator';
 import { Toast } from '../../src/components/Toast';
@@ -31,18 +26,14 @@ function CheckCell({
   checked: boolean;
   onToggle: () => void;
 }) {
-  const scale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handlePress = () => {
-    scale.value = withSequence(
-      withTiming(0.8, { duration: 80 }),
-      withTiming(1.15, { duration: 150 }),
-      withTiming(1, { duration: 100 }),
-    );
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.8, duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1.15, duration: 150, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
     onToggle();
   };
 
@@ -52,7 +43,7 @@ function CheckCell({
         style={[
           styles.checkbox,
           checked && styles.checkboxChecked,
-          animStyle,
+          { transform: [{ scale }] },
         ]}
       >
         {checked && <Text style={styles.checkmark}>{'\u2713'}</Text>}
@@ -78,7 +69,6 @@ export default function CallsScreen() {
     async (accountId: string, dayIndex: number) => {
       const newValue = await toggleCall(accountId, dayIndex);
       if (newValue) {
-        // Count total calls after toggle
         let totalCalls = 0;
         const updatedCalls = { ...data.calls };
         if (!updatedCalls[accountId]) {
@@ -87,8 +77,8 @@ export default function CallsScreen() {
         updatedCalls[accountId][dayIndex] = true;
 
         for (const id of Object.keys(updatedCalls)) {
-          for (const checked of updatedCalls[id]) {
-            if (checked) totalCalls++;
+          for (const c of updatedCalls[id]) {
+            if (c) totalCalls++;
           }
         }
 
@@ -148,11 +138,7 @@ export default function CallsScreen() {
           {/* Account rows */}
           {accounts.map((account) => {
             const callData = data.calls[account.id] ?? [
-              false,
-              false,
-              false,
-              false,
-              false,
+              false, false, false, false, false,
             ];
             return (
               <View key={account.id} style={styles.gridRow}>

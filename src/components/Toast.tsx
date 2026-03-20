@@ -1,14 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
-import { Text, StyleSheet, Dimensions } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  withDelay,
-  runOnJS,
-  Easing,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { Text, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,47 +20,45 @@ const TOAST_COLORS: Record<ToastType, { bg: string; border: string }> = {
 };
 
 export function Toast({ message, type, visible, onHide }: ToastProps) {
-  const translateY = useSharedValue(-100);
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.8);
-
-  const hideCallback = useCallback(() => {
-    onHide();
-  }, [onHide]);
+  const translateY = useRef(new Animated.Value(-100)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withTiming(0, {
-        duration: 400,
-        easing: Easing.out(Easing.back(1.5)),
-      });
-      opacity.value = withTiming(1, { duration: 300 });
-      scale.value = withSequence(
-        withTiming(1.05, { duration: 300, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 200 }),
-      );
-
-      // Auto-hide after 2.5 seconds
-      translateY.value = withDelay(
-        2500,
-        withTiming(-100, { duration: 300, easing: Easing.in(Easing.cubic) }),
-      );
-      opacity.value = withDelay(
-        2500,
-        withTiming(0, { duration: 300 }, () => {
-          runOnJS(hideCallback)();
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
         }),
-      );
-    }
-  }, [visible, translateY, opacity, scale, hideCallback]);
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-    opacity: opacity.value,
-  }));
+      const timer = setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(translateY, {
+            toValue: -100,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start(() => onHide());
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    } else {
+      translateY.setValue(-100);
+      opacity.setValue(0);
+    }
+  }, [visible]);
 
   const colors = TOAST_COLORS[type];
 
@@ -80,7 +69,7 @@ export function Toast({ message, type, visible, onHide }: ToastProps) {
       style={[
         styles.container,
         { backgroundColor: colors.bg, borderColor: colors.border },
-        animatedStyle,
+        { transform: [{ translateY }], opacity },
       ]}
     >
       <Text style={styles.icon}>

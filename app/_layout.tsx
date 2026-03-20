@@ -3,21 +3,24 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppProvider } from '../src/context/AppContext';
 import { Colors } from '../src/constants/theme';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
-      <AppProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.background },
-          }}
-        />
-      </AppProvider>
+      <ErrorBoundary>
+        <AppProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: Colors.background },
+            }}
+          />
+        </AppProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

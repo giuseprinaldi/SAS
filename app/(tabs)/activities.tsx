@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-  useSharedValue,
-} from 'react-native-reanimated';
 import { useApp } from '../../src/context/AppContext';
 import { WeekNavigator } from '../../src/components/WeekNavigator';
 import { Toast } from '../../src/components/Toast';
@@ -43,17 +38,13 @@ function CounterRow({
   onIncrement: () => void;
   onDecrement: () => void;
 }) {
-  const scale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handleIncrement = () => {
-    scale.value = withSequence(
-      withTiming(1.2, { duration: 100 }),
-      withTiming(1, { duration: 150 }),
-    );
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
     onIncrement();
   };
 
@@ -83,7 +74,7 @@ function CounterRow({
             {'\u2212'}
           </Text>
         </TouchableOpacity>
-        <Animated.View style={animStyle}>
+        <Animated.View style={{ transform: [{ scale }] }}>
           <Text style={styles.counterValue}>{value}</Text>
         </Animated.View>
         <TouchableOpacity onPress={handleIncrement} style={styles.counterBtn}>
@@ -115,7 +106,6 @@ export default function ActivitiesScreen() {
     [data.dailyActivities, selectedDay],
   );
 
-  // Aggregate weekly totals
   const weeklyTotals = useMemo(() => {
     const totals = {
       prospectsVisited: 0,
@@ -142,7 +132,6 @@ export default function ActivitiesScreen() {
     const prevValue = dayActivities[field];
     await updateActivities(selectedDay, { [field]: value });
 
-    // Toasts for satisfying feedback
     if (field === 'endOfDayReview' && value === true) {
       showToast(`${DAY_LABELS[selectedDay]} EOD review complete!`, 'success');
     } else if (field === 'cuttings' && typeof value === 'number' && value > (prevValue as number)) {
@@ -163,7 +152,6 @@ export default function ActivitiesScreen() {
       <Text style={styles.title}>Daily Activities</Text>
       <WeekNavigator weekStart={weekStart} onWeekChange={setWeekStart} />
 
-      {/* Day selector */}
       <View style={styles.daySelector}>
         {DAY_LABELS.map((day, index) => (
           <TouchableOpacity
@@ -269,7 +257,6 @@ export default function ActivitiesScreen() {
           }
         />
 
-        {/* EOD Review toggle */}
         <View style={styles.eodRow}>
           <View style={styles.counterInfo}>
             <Text style={styles.counterIcon}>{'\u2705'}</Text>

@@ -11,7 +11,6 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useApp } from '../../src/context/AppContext';
 import { Toast } from '../../src/components/Toast';
 import { Account } from '../../src/types';
@@ -54,12 +53,8 @@ export default function AccountsScreen() {
     );
   };
 
-  const renderItem = ({ item, index }: { item: Account; index: number }) => (
-    <Animated.View
-      entering={FadeInDown.delay(index * 50).duration(300)}
-      exiting={FadeOutUp.duration(200)}
-      style={styles.accountRow}
-    >
+  const renderItem = ({ item }: { item: Account }) => (
+    <View style={styles.accountRow}>
       <View style={styles.accountInfo}>
         <View style={styles.accountAvatar}>
           <Text style={styles.avatarText}>
@@ -74,7 +69,7 @@ export default function AccountsScreen() {
       >
         <Text style={styles.removeBtn}>{'\u2715'}</Text>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   return (
@@ -94,7 +89,6 @@ export default function AccountsScreen() {
           {accounts.length} account{accounts.length !== 1 ? 's' : ''}
         </Text>
 
-        {/* Add account input */}
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
