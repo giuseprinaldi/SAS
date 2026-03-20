@@ -23,7 +23,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A1A"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.salesactivity.tracker"
     },
     "web": {

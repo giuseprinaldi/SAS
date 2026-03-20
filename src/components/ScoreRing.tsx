@@ -1,16 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
 import { Colors, FontSize } from '../constants/theme';
 import { getScoreColor } from '../utils/score';
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface ScoreRingProps {
   score: number;
@@ -24,30 +16,39 @@ export function ScoreRing({ score, bonus, size = 200, strokeWidth = 12 }: ScoreR
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  const progress = useSharedValue(0);
-  const bonusProgress = useSharedValue(0);
+  const [progress, setProgress] = useState(0);
+  const [bonusProgressVal, setBonusProgressVal] = useState(0);
 
   useEffect(() => {
-    progress.value = withTiming(Math.min(score, 100) / 100, {
-      duration: 1200,
-      easing: Easing.out(Easing.cubic),
-    });
-    bonusProgress.value = withTiming(Math.min(bonus, 10) / 10, {
-      duration: 1400,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [score, bonus, progress, bonusProgress]);
+    const targetProgress = Math.min(score, 100) / 100;
+    const targetBonus = Math.min(bonus, 10) / 10;
 
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - progress.value),
-  }));
+    // Simple animation using requestAnimationFrame
+    let start: number | null = null;
+    const duration = 1200;
+    const startProgress = progress;
+    const startBonus = bonusProgressVal;
+
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const t = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      setProgress(startProgress + (targetProgress - startProgress) * eased);
+      setBonusProgressVal(startBonus + (targetBonus - startBonus) * eased);
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [score, bonus]);
 
   const bonusRadius = radius - strokeWidth - 4;
   const bonusCircumference = 2 * Math.PI * bonusRadius;
-
-  const bonusAnimatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: bonusCircumference * (1 - bonusProgress.value),
-  }));
 
   const color = getScoreColor(score);
   const displayScore = Math.min(score + bonus, 110);
@@ -85,41 +86,41 @@ export function ScoreRing({ score, bonus, size = 200, strokeWidth = 12 }: ScoreR
               strokeWidth={strokeWidth - 4}
               fill="none"
             />
-            <AnimatedCircle
+            <Circle
               cx={center}
               cy={center}
               r={bonusRadius}
               stroke="url(#bonusGrad)"
               strokeWidth={strokeWidth - 4}
               fill="none"
-              strokeDasharray={bonusCircumference}
-              animatedProps={bonusAnimatedProps}
+              strokeDasharray={`${bonusCircumference}`}
+              strokeDashoffset={bonusCircumference * (1 - bonusProgressVal)}
               strokeLinecap="round"
               transform={`rotate(-90 ${center} ${center})`}
             />
           </>
         )}
         {/* Score arc */}
-        <AnimatedCircle
+        <Circle
           cx={center}
           cy={center}
           r={radius}
           stroke="url(#scoreGrad)"
           strokeWidth={strokeWidth}
           fill="none"
-          strokeDasharray={circumference}
-          animatedProps={animatedProps}
+          strokeDasharray={`${circumference}`}
+          strokeDashoffset={circumference * (1 - progress)}
           strokeLinecap="round"
           transform={`rotate(-90 ${center} ${center})`}
         />
       </Svg>
       <View style={styles.labelContainer}>
-        <Animated.Text style={[styles.scoreText, { color }]}>
+        <Text style={[styles.scoreText, { color }]}>
           {displayScore}
-        </Animated.Text>
-        <Animated.Text style={styles.maxText}>/ 100</Animated.Text>
+        </Text>
+        <Text style={styles.maxText}>/ 100</Text>
         {bonus > 0 && (
-          <Animated.Text style={styles.bonusText}>+{bonus} bonus</Animated.Text>
+          <Text style={styles.bonusText}>+{bonus} bonus</Text>
         )}
       </View>
     </View>
